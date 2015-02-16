@@ -1,0 +1,94 @@
+<meta charset="utf-8" />
+<script src="bundle.js"></script>
+<style>
+.assembly,
+.assembly div {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-style: preserve-3d;
+  transform-origin: 0 0;
+  /*backface-visibility: hidden;*/
+  transition: transform 1s;
+}
+
+body > .assembly {
+  transform-origin: 50% 50%;
+  transform: rotateY(20deg) rotateX(50deg);
+  width: 164px;
+  height: 414px;
+}
+/*body > .assembly::after {
+  content: "☺";
+  font-size: 300px;
+  line-height: 500px;
+  text-align: center;
+  width: 100%;
+  position: absolute;
+}*/
+
+body > .assembly > div {
+  outline: 1px inset black
+}
+
+.cap {
+  border: 1px inset rgba(0,0,0,0.2);
+}
+</style>
+<script type="text/javascript">
+  var lastX = 0
+    , lastY = 0
+    , curX = 0
+    , curY = 0
+    , down = false
+    , s = 1
+    , el
+
+  window.onmousedown = function (ev) {
+    if (ev.button !== 0) {
+      return
+    }
+    el = el || document.body.firstChild
+    el.style.transition = 'none'
+    lastX = ev.clientX
+    lastY = ev.clientY
+    down = true
+    move(ev)
+  }
+  window.onmousemove = function (ev) {
+    if (down) {
+      move(ev)
+    }
+  }
+  window.onmouseup = function (ev) {
+    if (down) {
+      down = false
+      // el.style.transition = null
+    }
+  }
+
+  window.onmousewheel = function (ev) {
+    el = el || document.body.firstChild
+    s += ev.deltaY/1000
+    s = Math.min(Math.max(s, 0.05), 1)
+    update()
+    ev.preventDefault()
+  }
+
+  function update() {
+    el.style.transform = 'rotateX(' + (-curY)/(2*Math.PI) + 'rad) rotateY(' + (curX)/(2*Math.PI) + 'rad) scale3d(' + s + ',' + s + ',' + s + ')'
+  }
+
+  function move(ev) {
+    var x = ev.clientX
+      , y = ev.clientY
+      , dx = x - lastX
+      , dy = y - lastY
+
+    curX += dx / 20
+    curY += dy / 10
+    update()
+    lastX = x
+    lastY = y
+  }
+</script>
