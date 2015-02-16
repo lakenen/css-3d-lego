@@ -8,16 +8,9 @@
   left: 0;
   transform-style: preserve-3d;
   transform-origin: 0 0;
-  /*backface-visibility: hidden;*/
-  transition: transform 1s;
+  backface-visibility: hidden;
 }
 
-body > .assembly {
-  transform-origin: 50% 50%;
-  transform: rotateY(20deg) rotateX(50deg);
-  width: 164px;
-  height: 414px;
-}
 /*body > .assembly::after {
   content: "☺";
   font-size: 300px;
@@ -27,12 +20,28 @@ body > .assembly {
   position: absolute;
 }*/
 
-body > .assembly > div {
-  outline: 1px inset black
+.cap, .top, .bottom, .left, .right, .front, .back {
+  border: 1px inset rgba(0,0,0,0.2);
 }
 
-.cap {
-  border: 1px inset rgba(0,0,0,0.2);
+html,body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  margin: 0;
+  background: #123;
+}
+.viewport {
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 50%;
+  background: transparent !important;
+}
+.plate {
+  transition: transform 0.3s;
+}
+.face {
+  background-color: #fc0;
 }
 </style>
 <script type="text/javascript">

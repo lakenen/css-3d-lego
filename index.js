@@ -1,49 +1,3 @@
-
-// var PI = Math.PI
-//   , PI2 = 2 * PI
-//   , CYL_FACES = 20
-
-// function createFace(w, h, color) {
-//   var el = document.createElement('div')
-//   el.style.position = 'absolute'
-//   el.style.top = 0
-//   el.style.left = 0
-//   el.style.width = w + 'px'
-//   el.style.height = h + 'px'
-//   el.style.background = color || 'red'
-//   return el
-// }
-
-// function createCircularFace(r, color) {
-//   var el = createFace(r * 2, r * 2, color)
-//   el.style.borderRadius = r + 'px'
-//   return el
-// }
-
-// function cylinder(x, y, z, r, h) {
-//   var c = PI2 * r
-//     , w = c / CYL_FACES
-//     , i
-//     , face
-//     , rotateY = 360 / CYL_FACES
-//     , container = document.createElement('div')
-//     , top = createCircularFace(r, color)
-//     , bottom = top.cloneNode()
-
-//   for (i = 0; i < CYL_FACES; ++i) {
-//     face = createFace(w, h)
-//     face.style.transform = 'rotateY(' + (rotateY * i) + 'deg) translateZ(' + r + 'px)'
-//     container.appendChild(face)
-//   }
-
-//   top.style.transform = ''
-//   container.appendChild(top)
-//   container.appendChild(bottom)
-
-//   container.style.transform = 'translate3d(' + x + 'px, ' + y + 'px, ' + z + 'px)'
-//   container.style.transformStyle = 'preserve-3d'
-//   return container
-// }
 'use strict'
 
 var PI = Math.PI
@@ -56,20 +10,120 @@ var STUD_PADDING = STUD_WIDTH / 3.2
 
 
 window.onload = function init() {
-  var viewport = document.body
-  viewport.style.transform = 'translate(50%, 50%)'
+  var viewport = createAssembly()
+  viewport.classList.add('viewport')
   viewport.style.transformStyle = 'preserve-3d'
-  viewport.style.perspective = '1000px'
+  viewport.style.perspective = '5000px'
 
-  var plate = createPlate(2, 5)
-  viewport.appendChild(plate)
 
-  function loop() {
-    updateColors(plate)
-    window.requestAnimationFrame(loop, plate)
+  viewport.appendChild(createPlate(1, 1, 6, 4))
+  // viewport.appendChild(makeSymbol(0, 10,  4))
+  // viewport.appendChild(makeSymbol(1, 7,  0))
+  // viewport.appendChild(makeSymbol(2, 14, 0))
+  // viewport.appendChild(makeSymbol(3, 21, 0))
+  // viewport.appendChild(makeSymbol(4, 28, 0))
+  // viewport.appendChild(makeSymbol(5, 0,  11))
+  // viewport.appendChild(makeSymbol(6, 7,  11))
+  // viewport.appendChild(makeSymbol(7, 14, 11))
+  // viewport.appendChild(makeSymbol(8, 21, 11))
+  // viewport.appendChild(makeSymbol(9, 28, 11))
+  // viewport.appendChild(makeSymbol(':', 35, 0))
+  document.body.appendChild(viewport)
+
+  var fid
+  function update() {
+    updateColors(viewport, null, 230, 100)
   }
 
-  loop()
+  function loop() {
+    update()
+    fid = window.requestAnimationFrame(loop, viewport)
+  }
+
+  function stop() {
+    window.cancelAnimationFrame(fid)
+  }
+
+  update()
+
+  // loop()
+
+  window.updateColors = update
+  window.loop = loop
+  window.stopUpdating = stop
+}
+
+function makeSymbol(s, offX, offY, offZ) {
+  offX = offX || 0
+  offY = offY || 0
+  offZ = offZ || 0
+  var assembly = createAssembly()
+  assembly.classList.add('symbol')
+  switch (s) {
+    case ':':
+      assembly.appendChild(createPlate(1, 1, offX, offY + 1, offZ))
+      assembly.appendChild(createPlate(1, 1, offX, offY + 7, offZ))
+      break
+    case 0:
+      assembly.appendChild(createPlate(1, 9, offX, offY, offZ))
+      assembly.appendChild(createPlate(3, 1, offX + 1, offY, offZ))
+      assembly.appendChild(createPlate(1, 9, offX + 4, offY, offZ))
+      assembly.appendChild(createPlate(3, 1, offX + 1, offY + 8, offZ))
+      break
+    case 1:
+      assembly.appendChild(createPlate(1, 9, offX + 4, offY, offZ))
+      break
+    case 2:
+      assembly.appendChild(createPlate(5, 1, offX, offY, offZ))
+      assembly.appendChild(createPlate(1, 3, offX + 4, offY + 1, offZ))
+      assembly.appendChild(createPlate(5, 1, offX, offY + 4, offZ))
+      assembly.appendChild(createPlate(1, 3, offX, offY + 5, offZ))
+      assembly.appendChild(createPlate(5, 1, offX, offY + 8, offZ))
+      break
+    case 3:
+      assembly.appendChild(createPlate(5, 1, offX, offY, offZ))
+      assembly.appendChild(createPlate(1, 3, offX + 4, offY + 1, offZ))
+      assembly.appendChild(createPlate(5, 1, offX, offY + 4, offZ))
+      assembly.appendChild(createPlate(1, 3, offX + 4, offY + 5, offZ))
+      assembly.appendChild(createPlate(5, 1, offX, offY + 8, offZ))
+      break
+    case 4:
+      assembly.appendChild(createPlate(1, 5, offX, offY, offZ))
+      assembly.appendChild(createPlate(3, 1, offX + 1, offY + 4, offZ))
+      assembly.appendChild(createPlate(1, 9, offX + 4, offY, offZ))
+      break
+    case 5:
+      assembly.appendChild(createPlate(5, 1, offX, offY, offZ))
+      assembly.appendChild(createPlate(1, 3, offX, offY + 1, offZ))
+      assembly.appendChild(createPlate(5, 1, offX, offY + 4, offZ))
+      assembly.appendChild(createPlate(1, 3, offX + 4, offY + 5, offZ))
+      assembly.appendChild(createPlate(5, 1, offX, offY + 8, offZ))
+      break
+    case 6:
+      assembly.appendChild(createPlate(1, 9, offX, offY, offZ))
+      assembly.appendChild(createPlate(3, 1, offX + 1, offY + 4, offZ))
+      assembly.appendChild(createPlate(1, 5, offX + 4, offY + 4, offZ))
+      assembly.appendChild(createPlate(3, 1, offX + 1, offY + 8, offZ))
+      break
+    case 7:
+      assembly.appendChild(createPlate(4, 1, offX, offY, offZ))
+      assembly.appendChild(createPlate(1, 9, offX + 4, offY, offZ))
+      break
+    case 8:
+      assembly.appendChild(createPlate(1, 9, offX, offY, offZ))
+      assembly.appendChild(createPlate(3, 1, offX + 1, offY, offZ))
+      assembly.appendChild(createPlate(3, 1, offX + 1, offY + 4, offZ))
+      assembly.appendChild(createPlate(3, 1, offX + 1, offY + 8, offZ))
+      assembly.appendChild(createPlate(1, 9, offX + 4, offY, offZ))
+      break
+    case 9:
+      assembly.appendChild(createPlate(1, 9, offX + 4, offY, offZ))
+      assembly.appendChild(createPlate(3, 1, offX + 1, offY, offZ))
+      assembly.appendChild(createPlate(3, 1, offX + 1, offY + 4, offZ))
+      assembly.appendChild(createPlate(1, 5, offX, offY, offZ))
+      break
+  }
+  return assembly
 }
 
 function matrixString(m) {
@@ -83,10 +137,10 @@ function matrixString(m) {
 
 function identityMatrix() {
   var m = {}
-  m.m11 = m.a = 1; m.m12 = m.b = 0; m.m13 = 0; m.m14 = 0
-  m.m21 = m.c = 0; m.m22 = m.d = 1; m.m23 = 0; m.m24 = 0
-  m.m31 = 0; m.m32 = 0; m.m33 = 1; m.m34 = 0;
-  m.m41 = m.e = 0; m.m42 = m.f = 0; m.m43 = 0; m.m44 = 1
+  m.m11 = 1; m.m12 = 0; m.m13 = 0; m.m14 = 0
+  m.m21 = 0; m.m22 = 1; m.m23 = 0; m.m24 = 0
+  m.m31 = 0; m.m32 = 0; m.m33 = 1; m.m34 = 0
+  m.m41 = 0; m.m42 = 0; m.m43 = 0; m.m44 = 1
   return m
 }
 
@@ -113,7 +167,6 @@ function multiplyMatrix(m1, m2) {
     , m44 = m2.m41 * m1.m14 + m2.m42 * m1.m24 + m2.m43 * m1.m34 + m2.m44 * m1.m44
 
   return {
-    a: m11, b: m12, c: m21, d: m22, e: m41, f: m42,
     m11: m11, m12: m12, m13: m13, m14: m14,
     m21: m21, m22: m22, m23: m23, m24: m24,
     m31: m31, m32: m32, m33: m33, m34: m34,
@@ -121,66 +174,112 @@ function multiplyMatrix(m1, m2) {
   }
 }
 
-function parseCSSMatrix(string) {
-  var i
-    , m = identityMatrix()
-    , parts = []
-    , patternNone = /^none$/
-    , patternMatrix = /^matrix\((.*)\)/
-    , patternMatrix3d = /^matrix3d\((.*)\)/
+function parseCSSMatrix(matrixString) {
+  var c = matrixString.split(/\s*[(),]\s*/).slice(1,-1)
 
-  string = String(string).trim()
-  if (patternNone.test(string)) return m
-
-  parts = string.replace(/^.*\((.*)\)$/g, "$1").split(/\s*,\s*/).map(parseFloat)
-
-  if (patternMatrix.test(string) && parts.length === 6) {
-    m.m11 = m.a = parts[0]; m.m12 = m.b = parts[2]; m.m41 = m.e = parts[4]
-    m.m21 = m.c = parts[1]; m.m22 = m.d = parts[3]; m.m42 = m.f = parts[5]
-  } else if (patternMatrix3d.test(string) && parts.length === 16) {
-    m.m11 = m.a = parts[0]; m.m12 = m.b = parts[1]; m.m13 = parts[2];  m.m14 = parts[3]
-    m.m21 = m.c = parts[4]; m.m22 = m.d = parts[5]; m.m23 = parts[6];  m.m24 = parts[7]
-    m.m31 = parts[8]; m.m32 = parts[9]; m.m33 = parts[10]; m.m34 = parts[11]
-    m.m41 = m.e = parts[12]; m.m42 = m.f = parts[13]; m.m43 = parts[14]; m.m44 = parts[15]
-  } else {
-    throw new TypeError('Invalid Matrix Value')
-  }
-  return m
-}
-
-function updateColors(node, m) {
-  var style, matrix
-  if (node.clientWidth && node.clientHeight) {
-    style = window.getComputedStyle(node)
-    matrix = multiplyMatrix(m || identityMatrix(), parseCSSMatrix(style.transform))
-    var rx = Math.acos(matrix.m11) * (matrix.m13 > 0 ? -1 : 1)
-    var ry = Math.asin(matrix.m22)
-
-
-    var alpha = (100 * Math.cos(rx / 1.5) * Math.cos(ry / 2)).toFixed(0)
-    if (node.dataset.alpha !== alpha) {
-
-      if (node.classList.contains('cap')) {
-        node.style.backgroundColor = node.parentNode.parentNode.style.background
-        return
-        var el = createAssembly()
-        document.body.appendChild(el)
-        el.style.transform = matrixString(matrix)
-        console.log(matrix, rx * 180 / PI, ry * 180 / PI)
-      }
-      // if (node.classList.contains('top')) {
-      //   var el = createAssembly()
-      //   document.body.appendChild(el)
-      //   el.style.transform = matrixString(matrix)
-      //   console.log(matrix, rx * 180 / PI, ry * 180 / PI)
-      // }
-      node.style.backgroundColor = 'hsla(0, 0%, ' + alpha + '%, 1)'
-      node.dataset.alpha = alpha
+  if (c.length === 6) {
+    // 'matrix()' (3x2)
+    return {
+      m11: +c[0], m21: +c[2], m31: 0, m41: +c[4],
+      m12: +c[1], m22: +c[3], m32: 0, m42: +c[5],
+      m13: 0,     m23: 0,     m33: 1, m43: 0,
+      m14: 0,     m24: 0,     m34: 0, m44: 1
+    }
+  } else if (c.length === 16) {
+    // matrix3d() (4x4)
+    return {
+      m11: +c[0], m21: +c[4], m31: +c[8], m41: +c[12],
+      m12: +c[1], m22: +c[5], m32: +c[9], m42: +c[13],
+      m13: +c[2], m23: +c[6], m33: +c[10], m43: +c[14],
+      m14: +c[3], m24: +c[7], m34: +c[11], m44: +c[15]
     }
   }
+  return identityMatrix()
+}
+
+function getTransform(matrix) {
+  var rotateY = Math.asin(-matrix.m13),
+    rotateX,
+    rotateZ
+
+  rotateX = Math.atan2(matrix.m23, matrix.m33)
+  rotateZ = Math.atan2(matrix.m12, matrix.m11)
+
+  /*if (Math.cos(rotateY) !== 0) {
+      rotateX = Math.atan2(matrix.m23, matrix.m33)
+      rotateZ = Math.atan2(matrix.m12, matrix.m11)
+  } else {
+      rotateX = Math.atan2(-matrix.m31, matrix.m22)
+      rotateZ = 0
+  }*/
+
+  return {
+    matrix: matrix,
+    rotate: {
+      x: rotateX,
+      y: rotateY,
+      z: rotateZ
+    },
+    translate: {
+      x: matrix.m41,
+      y: matrix.m42,
+      z: matrix.m43
+    }
+  }
+}
+
+function computeVertexData(elem, m) {
+    var w = elem.offsetWidth / 2,
+      h = elem.offsetHeight / 2,
+      v = {
+        a: { x: -w, y: -h, z: 0 },
+        b: { x: w, y: -h, z: 0 },
+        c: { x: w, y: h, z: 0 },
+        d: { x: -w, y: h, z: 0 }
+      },
+      transform = getTransform(m)
+
+    v.a = Vect3.add(Vect3.rotate(v.a, transform.rotate), transform.translate)
+    v.b = Vect3.add(Vect3.rotate(v.b, transform.rotate), transform.translate)
+    v.c = Vect3.add(Vect3.rotate(v.c, transform.rotate), transform.translate)
+    v.d = Vect3.add(Vect3.rotate(v.d, transform.rotate), transform.translate)
+
+    return v
+}
+
+function updateColors(node, m, h, s) {
+  var style, matrix
+  m = m || []
+  style = window.getComputedStyle(node)
+  m.push(parseCSSMatrix(style.transform))
+  matrix = m.reverse().reduce(multiplyMatrix)
+
+
+  var rx, rz, ry = Math.asin(-matrix.m13)
+  if (Math.cos(ry) !== 0) {
+      rx = Math.atan2(matrix.m23, matrix.m33)
+      rz = Math.atan2(matrix.m12, matrix.m11)
+  } else {
+      rx = Math.atan2(-matrix.m31, matrix.m22)
+      rz = 0
+  }
+
+
+  var shade = Math.cos(rx / 1.5) * Math.cos(ry / 2) * Math.cos(rz / 2)
+  var lightness = (shade * 100).toFixed(0)
+  if (node.classList.contains('cap')) {
+    console.log((rx * 180 / PI).toFixed(0), (ry * 180 / PI).toFixed(0), (rz * 180 / PI).toFixed(0))
+    console.log(lightness)
+  }
+  if (node.dataset.lightness !== lightness) {
+    // node.style.opacity = alpha
+    node.style.backgroundColor = 'hsla(' + h + ', ' + s+ '%, ' + lightness + '%, 1)'
+    node.dataset.lightness = lightness
+  }
+
   if (node.hasChildNodes()) {
     Array.prototype.forEach.call(node.childNodes, function (n) {
-      updateColors(n, matrix)
+      updateColors(n, m.concat(), h, s)
     })
   }
 }
@@ -193,32 +292,44 @@ function createAssembly() {
   return assembly
 }
 
+function computePlateLength(studs) {
+  return STUD_PADDING * 2 + studs * (STUD_WIDTH + STUD_SPACING) - STUD_SPACING
+}
+
 // rows/cols in studs
-function createPlate(rows, cols, color) {
+function createPlate(rows, cols, posX, posY, posZ, color) {
 
   var container = createAssembly()
+  container.classList.add('plate', 'atomic')
 
-  var plateWidth = STUD_PADDING * 2 + rows * (STUD_WIDTH + STUD_SPACING) - STUD_SPACING
-  var plateLength = STUD_PADDING * 2 + cols * (STUD_WIDTH + STUD_SPACING) - STUD_SPACING
+  var plateWidth = computePlateLength(rows)
+  var plateLength = computePlateLength(cols)
+  var plateX = computePlateLength(posX || 0)
+  var plateY = computePlateLength(posY || 0)
+  var plateZ = (posZ || 0) * PLATE_HEIGHT
 
+  var bottom = createFace(plateWidth, plateLength, plateX, plateY, plateZ, 0, PI, 0)
+  bottom.style.transform += ' translateX(' + (-plateWidth).toFixed(2) + 'px)'
 
-  var bottom = createFace(plateWidth, plateLength, 0, 0, 0, PI, PI, PI)
-  var top = createFace(plateWidth, plateLength)
+  var top = createFace(plateWidth, plateLength, plateX, plateY, plateZ)
   top.classList.add('top')
   top.style.transform += ' translateZ(' + PLATE_HEIGHT.toFixed(2) + 'px)'
-  var back = createFace(plateWidth, PLATE_HEIGHT, 0, 0, 0, PI / 2)
+
+  var back = createFace(plateWidth, PLATE_HEIGHT, plateX, plateY, plateZ, PI / 2)
   back.classList.add('back')
-  var front = createFace(plateWidth, PLATE_HEIGHT, 0, 0, 0, -PI / 2)
+
+  var front = createFace(plateWidth, PLATE_HEIGHT, plateX, plateY, plateZ, -PI / 2)
   front.classList.add('front')
   front.style.transform += ' translateZ(' + plateLength.toFixed(2) + 'px)'
   front.style.transform += ' translateY(' + (-PLATE_HEIGHT).toFixed(2) + 'px)'
-  var left = createFace(PLATE_HEIGHT, plateLength, 0, 0, 0, 0, -PI / 2)
+
+  var left = createFace(PLATE_HEIGHT, plateLength, plateX, plateY, plateZ, 0, -PI / 2)
   left.classList.add('left')
-  var right = createFace(PLATE_HEIGHT, plateLength, 0, 0, 0, 0, PI / 2)
+
+  var right = createFace(PLATE_HEIGHT, plateLength, plateX, plateY, plateZ, 0, PI / 2)
   right.classList.add('right')
   right.style.transform += ' translateZ(' + plateWidth.toFixed(2) + 'px)'
   right.style.transform += ' translateX(' + (-PLATE_HEIGHT).toFixed(2) + 'px)'
-
 
   var studR = STUD_WIDTH / 2
     , studH = STUD_HEIGHT
@@ -260,6 +371,7 @@ function createFace(w, h, x, y, z, rx, ry, rz, rad) {
   rad = rad || 0
 
   var face = document.createElement('div')
+  face.classList.add('face')
   face.style.cssText =
     'position: absolute;' +
     'top: 0; left: 0;' +
@@ -293,7 +405,7 @@ function createStud(r, h, x, y, z, rx, ry, rz) {
   rx = rx || 0
   ry = ry || 0
   rz = rz || 0
-  var stud = createTube(r, h, 25)
+  var stud = createTube(r, h, 15)
   var cap = createFace(r * 2, r * 2, 0, 0, 0, -Math.PI / 2, 0, 0, r)
   cap.classList.add('cap')
   cap.style.transform += ' translateZ(' + h.toFixed(2) + 'px)'
