@@ -9,186 +9,359 @@ var performance = window.performance ||
 window.onload = function () {
   var viewport = Lego.createAssembly()
   viewport.classList.add('viewport')
-  viewport.style.transformStyle = 'preserve-3d'
-  viewport.style.perspective = '5000px'
 
-
-  // viewport.appendChild(Lego.createPlate(1, 1, 0, 0))
-  // viewport.appendChild(Lego.createPlate(8, 1, 1, 0))
-  // viewport.appendChild(makeSymbol(0, 0,  0))
-  // viewport.appendChild(makeSymbol(1, 7,  0))
-  viewport.appendChild(makeSymbol(2, 5, 0))
-  // viewport.appendChild(makeSymbol(3, 21, 0))
-  // viewport.appendChild(makeSymbol(4, 28, 0))
-  // viewport.appendChild(makeSymbol(5, 0,  11))
-  // viewport.appendChild(makeSymbol(6, 7,  11))
-  // viewport.appendChild(makeSymbol(7, 14, 11))
-  // viewport.appendChild(makeSymbol(8, 21, 11))
-  // viewport.appendChild(makeSymbol(9, 28, 11))
-  // viewport.appendChild(makeSymbol(':', 35, 0))
   document.body.appendChild(viewport)
 
   init(viewport)
+
 }
 
 
-function init(scene) {
+function init(viewport) {
+
+  // viewport.appendChild(Lego.createPlate(1, 1, 1, 0, 0))
+  // var background = Lego.createPlate(40, 24, 1, -2, -2, -1)
+  // background.classList.add('background')
+  // viewport.appendChild(background)
+  // var symbols = [
+  //     ['0', 0,  0]
+  //   , ['1', 7,  0]
+  //   , ['2', 14, 0]
+  //   , ['3', 21, 0]
+  //   , ['4', 28, 0]
+  //   , ['5', 0,  11]
+  //   , ['6', 7,  11]
+  //   , ['7', 14, 11]
+  //   , ['8', 21, 11]
+  //   , ['9', 28, 11]
+  //   , [':', 35, 0]
+  // ]
+
+
+  var clock = []
+  function printTime(d) {
+    d = d ? new Date(d) : new Date()
+    var hours = d.getHours()
+      , minutes = d.getMinutes()
+      , seconds = d.getSeconds()
+      , symbols
+
+
+    function pad(n, c) {
+      n = n.toString()
+      if (n.length === 1) {
+        n = c + n
+      }
+      return n
+    }
+
+    symbols = []
+      .concat(pad(hours, ' ').split(''))
+      .concat(':')
+      .concat(pad(minutes, '0').split(''))
+      .concat(':')
+      .concat(pad(seconds, '0').split(''))
+
+    var curX = 4
+      , curY = 2
+    symbols.forEach(function (s, i) {
+      var c = clock[i]
+      if (!c) {
+        clock[i] = c = { symbols: {} }
+      }
+      if (c.symbol !== s) {
+        if (c.block) {
+          removeBlock(c.block)
+          c.symbols[c.symbol] = c.block.blockEl
+        }
+
+        var block
+        if (c.symbols[s]) {
+          block = c.symbols[s]
+        } else {
+          block = makeSymbol(s, curX, curY)
+        }
+        c.symbol = s
+        c.block = addBlock(block)
+      }
+      curX += (s === ':' ? 3 : 7)
+    })
+  }
+
+
+
   // Default positions
-  var mouseX = -40, mouseY = 30
-  var lightX = 100, lightY = 0
+  var mouseX = 0, mouseY = 0
+  var lightX = 0, lightY = 0
   var scale = 1
+  var currentFaceIndex = 0
+  var faceCount = 0
+  var dirty = true
+
+  var background = Lego.createAssembly()
+  // var background = Lego.createPlate(52, 13, 1, 10, 5, -1)
+  // // var background = Lego.createPlate(10, 10, 1, 10, 5, -1)
+  background.classList.add('background')
+  // addBlock(background)
+  viewport.appendChild(background)
+
+  var scene = Lego.createAssembly()
+  viewport.appendChild(scene)
+  // hard-coded to match the background image
+  scene.style.transform = 'rotateY(5.6rad) rotateX(0.1rad) scale3d(1, 1, 1)'
+  // scene.style.width = Lego.computePlateLength(52) + 'px'
+  // scene.style.height = Lego.computePlateLength(13) + 'px'
+  // scene.style.outline = '1px inset blue'
 
   var light = document.createElement('div')
   light.classList.add('light')
-  scene.parentNode.appendChild(light)
-  // var atomicBlocks = document.querySelectorAll('.assembly.atomic')
-  // var blockFaces = []
-  // Array.prototype.forEach.call(atomicBlocks, function (block) {
-    var faces = Array.prototype.map.call(scene.querySelectorAll('.face'), function (face) {
-      var verticies = computeVertexData(face)
-      return {
-        verticies: verticies,
-        normal: Vect3.normalize(Vect3.cross(Vect3.sub(verticies.b, verticies.a), Vect3.sub(verticies.c, verticies.a))),
-        center: Vect3.divs(Vect3.sub(verticies.c, verticies.a), 2),
-        faceEl: face
+  viewport.parentNode.appendChild(light)
+  var blocks = []
+    , faces = []
+  Array.prototype.forEach.call(scene.querySelectorAll('.assembly.atomic'), addBlock)
+
+  setInterval(printTime, 100)
+
+  // window.printTime = printTime
+  // printTime()
+
+  function addBlock(blockEl) {
+    var block = { blockEl: blockEl }
+
+    scene.appendChild(blockEl)
+    block.faces = Array.prototype.map.call(blockEl.querySelectorAll('.face'), function (faceEl) {
+      faceCount++
+      var verticies = computeVertexData(faceEl)
+      var face = {
+          verticies: verticies
+        , normal: Vect3.normalize(Vect3.cross(Vect3.sub(verticies.b, verticies.a), Vect3.sub(verticies.c, verticies.a)))
+        , center: Vect3.divs(Vect3.sub(verticies.c, verticies.a), 2)
+        , faceEl: faceEl
+        , block: block
       }
+      faces.push(face)
+      return face
     })
-  //   blockFaces.push({ blockEl: block, faces: faces })
-  // })
+    blocks.push(block)
+    return block
+  }
+
+  function removeBlock(block) {
+    var ind = blocks.indexOf(block)
+    if (ind > -1) {
+      blocks.splice(ind, 1)
+      block.blockEl.parentNode.removeChild(block.blockEl)
+      updateFaces()
+    }
+  }
+
+  function updateFaces() {
+    faces = blocks.map(function (block) {
+      return block.faces
+    }).reduce(function (a, b) {
+      return a.concat(b)
+    }, [])
+    faceCount = faces.length
+    currentFaceIndex = currentFaceIndex % faceCount
+  }
 
   function render(startTime) {
-    // blockFaces.forEach(function (block) {
-      var face, direction, amount,
-        // faces = block.faces,
-        faceNum = 0, faceCount = faces.length,
-        blockTransform = getTransform(scene),
-        lightTransform = getTransform(light),
-        lightPosition = Vect3.rotate(lightTransform.translate, Vect3.muls(blockTransform.rotate, -1))
+    startTime = startTime || performance.now()
+    var sceneTransform = getTransform(viewport)
+      , lightTransform = getTransform(light)
+      , faceIndex = 0
+      , blockTransform
+      , block
+      , face
+      , direction
+      , amount
+      , baseLightPosition
+      , currentLightPosition
 
-      while (faceNum < faceCount && performance.now() - startTime <= 10) {
-        face = faces[faceNum]
-        direction = Vect3.normalize(Vect3.sub(lightPosition, face.center))
-        amount = 1 - Math.max(0, Vect3.dot(face.normal, direction)).toFixed(2)
-        if (face.light != amount) {
-          face.light = amount
-          face.faceEl.style.backgroundImage = 'linear-gradient(rgba(0,0,0,' + amount + '),rgba(0,0,0,' + amount + '))'
-        }
-        faceNum++
+    baseLightPosition = Vect3.rotate(lightTransform.translate, Vect3.muls(sceneTransform.rotate, -1))
+    while (++faceIndex < faceCount && performance.now() - startTime <= 2) {
+      face = faces[currentFaceIndex]
+      currentFaceIndex = (currentFaceIndex + 1) % faceCount
+
+      // only shade if this face hasn't ever been shaded
+      if (face.faceEl.dataset.shaded) {
+        continue
       }
-    // })
+
+      if (face.block !== block) {
+        block = face.block
+        blockTransform = getTransform(block.blockEl)
+        currentLightPosition = Vect3.rotate(baseLightPosition, Vect3.muls(blockTransform.rotate, -1))
+      }
+
+      direction = Vect3.normalize(Vect3.sub(currentLightPosition, face.center))
+      amount = (1 - Math.max(0, Vect3.dot(face.normal, direction))).toFixed(2)
+      if (face.light !== amount) {
+        face.light = amount
+        face.faceEl.style.backgroundImage = 'linear-gradient(rgba(0,0,0,' + amount + '),rgba(0,0,0,' + amount + '))'
+      }
+
+      face.faceEl.dataset.shaded = true
+    }
   }
 
   function loop() {
-    var now = performance.now()
-    window.requestAnimationFrame(loop, scene)
-    var s = scale.toFixed(4)
-    scene.style.transform =
-      'rotateY(' + (mouseX / 100).toFixed(4) + 'rad) ' +
-      'rotateX(' + (-mouseY / 100).toFixed(4) + 'rad) ' +
-      'scale3d(' + s + ',' + s + ',' + s + ')'
-    light.style.transform = 'translateY(' + lightY.toFixed(4) + 'px) translateX(' + lightX.toFixed(4) + 'px) translateZ(250px)'
-    render(now)
+    window.requestAnimationFrame(loop, viewport)
+    if (dirty) {
+      var s = scale.toFixed(4)
+      dirty = false
+      viewport.style.transform =
+        // 'rotateY(' + (mouseX / 100).toFixed(4) + 'rad) ' +
+        // 'rotateX(' + (-mouseY / 100).toFixed(4) + 'rad) ' +
+        'scale3d(' + s + ',' + s + ',' + s + ')'
+      light.style.transform = 'translateY(' + lightY.toFixed(4) + 'px) translateX(' + lightX.toFixed(4) + 'px) translateZ(250px)'
+    }
+    render()
   }
 
   loop()
 
-  // allow user to drag the object around with the mouse
-  document.addEventListener('mousedown', function (e) {
-    if (e.button !== 0) {
+  var maxScale = 1
+    , minScale = 0.1
+    , clockWidth = 2070
+    , clockHeight = 650
+
+  function adjustMaxScale() {
+    var w = window.innerWidth
+      , h = window.innerHeight
+    maxScale = Math.min(1, w / clockWidth, h / clockHeight)
+    if (scale !== minScale) {
+      scale = maxScale
+    }
+    dirty = true
+  }
+
+  document.addEventListener('mousedown', function (event) {
+    if (event.button !== 0) {
       return
     }
-    var originX, originY,
-      dragHandler = function(e) {
-        if (originX || originY) {
-          mouseX += e.pageX - originX
-          mouseY += e.pageY - originY
-        }
-        originX = e.pageX
-        originY = e.pageY
-      }
-    document.addEventListener('mousemove', dragHandler)
-    document.addEventListener('mouseup', function dragEndHandler() {
-      document.removeEventListener('mousemove', dragHandler)
-      document.removeEventListener('mouseup', dragEndHandler)
-    })
-    e.preventDefault()
+
+    if (scale === minScale) {
+      scale = maxScale
+    } else {
+      scale = minScale
+    }
+
+    dirty = true
+    event.preventDefault()
   })
 
-  document.addEventListener('mousewheel', function (ev) {
-    scale += ev.deltaY/1000
-    scale = Math.min(Math.max(scale, 0.05), 1)
-    ev.preventDefault()
+  window.addEventListener('resize', function () {
+    adjustMaxScale()
   })
+
+  adjustMaxScale()
+
+  // allow user to drag the object around with the mouse
+  // document.addEventListener('mousedown', function (event) {
+  //   if (event.button !== 0) {
+  //     return
+  //   }
+  //   var originX, originY,
+  //     dragHandler = function(event) {
+  //       if (originX || originY) {
+  //         dirty = true
+  //         if (event.altKey) {
+  //           lightX += event.pageX - originX
+  //           lightY += event.pageY - originY
+  //         } else {
+  //           mouseX += event.pageX - originX
+  //           mouseY += event.pageY - originY
+  //         }
+  //       }
+  //       originX = event.pageX
+  //       originY = event.pageY
+  //     }
+  //   document.addEventListener('mousemove', dragHandler)
+  //   document.addEventListener('mouseup', function dragEndHandler() {
+  //     document.removeEventListener('mousemove', dragHandler)
+  //     document.removeEventListener('mouseup', dragEndHandler)
+  //   })
+  //   event.preventDefault()
+  // })
+
+  // document.addEventListener('mousewheel', function (ev) {
+  //   dirty = true
+  //   scale += ev.deltaY/1000
+  //   scale = Math.min(Math.max(scale, 0.05), 1)
+  //   ev.preventDefault()
+  // })
 }
 
 function makeSymbol(s, offX, offY, offZ) {
   offX = offX || 0
   offY = offY || 0
   offZ = offZ || 0
+  var depth = 3
   var assembly = Lego.createAssembly()
   assembly.classList.add('symbol')
   switch (s) {
     case ':':
-      assembly.appendChild(Lego.createPlate(1, 1, offX, offY + 1, offZ))
-      assembly.appendChild(Lego.createPlate(1, 1, offX, offY + 7, offZ))
+      assembly.appendChild(Lego.createPlate(1, 1, depth, offX, offY + 1, offZ))
+      assembly.appendChild(Lego.createPlate(1, 1, depth, offX, offY + 7, offZ))
       break
-    case 0:
-      assembly.appendChild(Lego.createPlate(1, 9, offX, offY, offZ))
-      assembly.appendChild(Lego.createPlate(3, 1, offX + 1, offY, offZ))
-      assembly.appendChild(Lego.createPlate(1, 9, offX + 4, offY, offZ))
-      assembly.appendChild(Lego.createPlate(3, 1, offX + 1, offY + 8, offZ))
+    case '0':
+      assembly.appendChild(Lego.createPlate(1, 9, depth, offX, offY, offZ))
+      assembly.appendChild(Lego.createPlate(3, 1, depth, offX + 1, offY, offZ))
+      assembly.appendChild(Lego.createPlate(1, 9, depth, offX + 4, offY, offZ))
+      assembly.appendChild(Lego.createPlate(3, 1, depth, offX + 1, offY + 8, offZ))
       break
-    case 1:
-      assembly.appendChild(Lego.createPlate(1, 9, offX + 4, offY, offZ))
+    case '1':
+      assembly.appendChild(Lego.createPlate(1, 9, depth, offX + 4, offY, offZ))
       break
-    case 2:
-      assembly.appendChild(Lego.createPlate(5, 1, offX, offY, offZ))
-      assembly.appendChild(Lego.createPlate(1, 3, offX + 4, offY + 1, offZ))
-      assembly.appendChild(Lego.createPlate(5, 1, offX, offY + 4, offZ))
-      assembly.appendChild(Lego.createPlate(1, 3, offX, offY + 5, offZ))
-      assembly.appendChild(Lego.createPlate(5, 1, offX, offY + 8, offZ))
+    case '2':
+      assembly.appendChild(Lego.createPlate(5, 1, depth, offX, offY, offZ))
+      assembly.appendChild(Lego.createPlate(1, 3, depth, offX + 4, offY + 1, offZ))
+      assembly.appendChild(Lego.createPlate(5, 1, depth, offX, offY + 4, offZ))
+      assembly.appendChild(Lego.createPlate(1, 3, depth, offX, offY + 5, offZ))
+      assembly.appendChild(Lego.createPlate(5, 1, depth, offX, offY + 8, offZ))
       break
-    case 3:
-      assembly.appendChild(Lego.createPlate(5, 1, offX, offY, offZ))
-      assembly.appendChild(Lego.createPlate(1, 3, offX + 4, offY + 1, offZ))
-      assembly.appendChild(Lego.createPlate(5, 1, offX, offY + 4, offZ))
-      assembly.appendChild(Lego.createPlate(1, 3, offX + 4, offY + 5, offZ))
-      assembly.appendChild(Lego.createPlate(5, 1, offX, offY + 8, offZ))
+    case '3':
+      assembly.appendChild(Lego.createPlate(5, 1, depth, offX, offY, offZ))
+      assembly.appendChild(Lego.createPlate(1, 3, depth, offX + 4, offY + 1, offZ))
+      assembly.appendChild(Lego.createPlate(5, 1, depth, offX, offY + 4, offZ))
+      assembly.appendChild(Lego.createPlate(1, 3, depth, offX + 4, offY + 5, offZ))
+      assembly.appendChild(Lego.createPlate(5, 1, depth, offX, offY + 8, offZ))
       break
-    case 4:
-      assembly.appendChild(Lego.createPlate(1, 5, offX, offY, offZ))
-      assembly.appendChild(Lego.createPlate(3, 1, offX + 1, offY + 4, offZ))
-      assembly.appendChild(Lego.createPlate(1, 9, offX + 4, offY, offZ))
+    case '4':
+      assembly.appendChild(Lego.createPlate(1, 5, depth, offX, offY, offZ))
+      assembly.appendChild(Lego.createPlate(3, 1, depth, offX + 1, offY + 4, offZ))
+      assembly.appendChild(Lego.createPlate(1, 9, depth, offX + 4, offY, offZ))
       break
-    case 5:
-      assembly.appendChild(Lego.createPlate(5, 1, offX, offY, offZ))
-      assembly.appendChild(Lego.createPlate(1, 3, offX, offY + 1, offZ))
-      assembly.appendChild(Lego.createPlate(5, 1, offX, offY + 4, offZ))
-      assembly.appendChild(Lego.createPlate(1, 3, offX + 4, offY + 5, offZ))
-      assembly.appendChild(Lego.createPlate(5, 1, offX, offY + 8, offZ))
+    case '5':
+      assembly.appendChild(Lego.createPlate(5, 1, depth, offX, offY, offZ))
+      assembly.appendChild(Lego.createPlate(1, 3, depth, offX, offY + 1, offZ))
+      assembly.appendChild(Lego.createPlate(5, 1, depth, offX, offY + 4, offZ))
+      assembly.appendChild(Lego.createPlate(1, 3, depth, offX + 4, offY + 5, offZ))
+      assembly.appendChild(Lego.createPlate(5, 1, depth, offX, offY + 8, offZ))
       break
-    case 6:
-      assembly.appendChild(Lego.createPlate(1, 9, offX, offY, offZ))
-      assembly.appendChild(Lego.createPlate(3, 1, offX + 1, offY + 4, offZ))
-      assembly.appendChild(Lego.createPlate(1, 5, offX + 4, offY + 4, offZ))
-      assembly.appendChild(Lego.createPlate(3, 1, offX + 1, offY + 8, offZ))
+    case '6':
+      assembly.appendChild(Lego.createPlate(1, 9, depth, offX, offY, offZ))
+      assembly.appendChild(Lego.createPlate(3, 1, depth, offX + 1, offY + 4, offZ))
+      assembly.appendChild(Lego.createPlate(1, 5, depth, offX + 4, offY + 4, offZ))
+      assembly.appendChild(Lego.createPlate(3, 1, depth, offX + 1, offY + 8, offZ))
       break
-    case 7:
-      assembly.appendChild(Lego.createPlate(4, 1, offX, offY, offZ))
-      assembly.appendChild(Lego.createPlate(1, 9, offX + 4, offY, offZ))
+    case '7':
+      assembly.appendChild(Lego.createPlate(4, 1, depth, offX, offY, offZ))
+      assembly.appendChild(Lego.createPlate(1, 9, depth, offX + 4, offY, offZ))
       break
-    case 8:
-      assembly.appendChild(Lego.createPlate(1, 9, offX, offY, offZ))
-      assembly.appendChild(Lego.createPlate(3, 1, offX + 1, offY, offZ))
-      assembly.appendChild(Lego.createPlate(3, 1, offX + 1, offY + 4, offZ))
-      assembly.appendChild(Lego.createPlate(3, 1, offX + 1, offY + 8, offZ))
-      assembly.appendChild(Lego.createPlate(1, 9, offX + 4, offY, offZ))
+    case '8':
+      assembly.appendChild(Lego.createPlate(1, 9, depth, offX, offY, offZ))
+      assembly.appendChild(Lego.createPlate(3, 1, depth, offX + 1, offY, offZ))
+      assembly.appendChild(Lego.createPlate(3, 1, depth, offX + 1, offY + 4, offZ))
+      assembly.appendChild(Lego.createPlate(3, 1, depth, offX + 1, offY + 8, offZ))
+      assembly.appendChild(Lego.createPlate(1, 9, depth, offX + 4, offY, offZ))
       break
-    case 9:
-      assembly.appendChild(Lego.createPlate(1, 9, offX + 4, offY, offZ))
-      assembly.appendChild(Lego.createPlate(3, 1, offX + 1, offY, offZ))
-      assembly.appendChild(Lego.createPlate(3, 1, offX + 1, offY + 4, offZ))
-      assembly.appendChild(Lego.createPlate(1, 5, offX, offY, offZ))
+    case '9':
+      assembly.appendChild(Lego.createPlate(1, 9, depth, offX + 4, offY, offZ))
+      assembly.appendChild(Lego.createPlate(3, 1, depth, offX + 1, offY, offZ))
+      assembly.appendChild(Lego.createPlate(3, 1, depth, offX + 1, offY + 4, offZ))
+      assembly.appendChild(Lego.createPlate(1, 5, depth, offX, offY, offZ))
       break
   }
   return assembly
@@ -250,28 +423,20 @@ function getTransform(el) {
   }*/
 
   return {
-    matrix: matrix,
-    rotate: {
-      x: rotateX,
-      y: rotateY,
-      z: rotateZ
-    },
-    translate: {
-      x: matrix.m41,
-      y: matrix.m42,
-      z: matrix.m43
-    }
+      matrix: matrix
+    , rotate: [rotateX, rotateY, rotateZ]
+    , translate: [matrix.m41, matrix.m42, matrix.m43]
   }
 }
 
-function computeVertexData(el, m) {
+function computeVertexData(el) {
   var w = 100,
     h = 100,
     v = {
-      a: { x: -w, y: -h, z: 0 },
-      b: { x: w, y: -h, z: 0 },
-      c: { x: w, y: h, z: 0 },
-      d: { x: -w, y: h, z: 0 }
+        a: [-w, -h, 0 ]
+      , b: [w, -h, 0 ]
+      , c: [w, h, 0 ]
+      , d: [-w, h, 0 ]
     },
     transform
 
@@ -284,40 +449,4 @@ function computeVertexData(el, m) {
     el = el.parentNode
   }
   return v
-}
-
-function updateColors(node, m, h, s) {
-  var style, matrix
-  style = window.getComputedStyle(node)
-  m.push(parseCSSMatrix(style.transform))
-  matrix = m.reverse().reduce(multiplyMatrix)
-
-
-  var rx, rz, ry = Math.asin(-matrix.m13)
-  if (Math.cos(ry) !== 0) {
-      rx = Math.atan2(matrix.m23, matrix.m33)
-      rz = Math.atan2(matrix.m12, matrix.m11)
-  } else {
-      rx = Math.atan2(-matrix.m31, matrix.m22)
-      rz = 0
-  }
-
-
-  var shade = Math.cos(rx / 1.5) * Math.cos(ry / 2) * Math.cos(rz / 2)
-  var lightness = (shade * 100).toFixed(0)
-  if (node.classList.contains('cap')) {
-    console.log((rx * 180 / PI).toFixed(0), (ry * 180 / PI).toFixed(0), (rz * 180 / PI).toFixed(0))
-    console.log(lightness)
-  }
-  if (node.dataset.lightness !== lightness) {
-    // node.style.opacity = alpha
-    node.style.backgroundColor = 'hsla(' + h + ', ' + s+ '%, ' + lightness + '%, 1)'
-    node.dataset.lightness = lightness
-  }
-
-  if (node.hasChildNodes()) {
-    Array.prototype.forEach.call(node.childNodes, function (n) {
-      updateColors(n, m.concat(), h, s)
-    })
-  }
 }
