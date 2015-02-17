@@ -1,3 +1,6 @@
+<!doctype html>
+<html>
+<head>
 <meta charset="utf-8" />
 <script src="bundle.js"></script>
 <style>
@@ -10,15 +13,6 @@
   transform-origin: 0 0;
   backface-visibility: hidden;
 }
-
-/*body > .assembly::after {
-  content: "☺";
-  font-size: 300px;
-  line-height: 500px;
-  text-align: center;
-  width: 100%;
-  position: absolute;
-}*/
 
 .cap, .top, .bottom, .left, .right, .front, .back {
   border: 1px inset rgba(0,0,0,0.5);
@@ -33,8 +27,8 @@ html,body {
   /*background: #123;*/
 }
 .viewport {
-  width: 100%;
-  height: 100%;
+  width: 2080px;
+  height: 650px;
   /*transform-origin: 50% 50%;*/
   /*perspective-origin: 75% 75%;*/
   background: transparent !important;
@@ -45,11 +39,12 @@ html,body {
 }
 
 .background {
-  background: url('legoboard.png') 0 0 no-repeat;
+  /*background: url('legoboard.png') 0 0 no-repeat;
   width: 2080px;
-  height: 650px;
+  height: 650px;*/
 }
-.background .face {
+.background .face,
+.structure .face {
   background-color: #333;
 }
 
@@ -154,3 +149,6 @@ html,body {
   }
   */
 </script>
+</head>
+<body class="animate"></body>
+</html>

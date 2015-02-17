@@ -62,7 +62,7 @@ function init(viewport) {
       .concat(':')
       .concat(pad(seconds, '0').split(''))
 
-    var curX = 4
+    var curX = 3
       , curY = 2
     symbols.forEach(function (s, i) {
       var c = clock[i]
@@ -98,20 +98,16 @@ function init(viewport) {
   var faceCount = 0
   var dirty = true
 
-  var background = Lego.createAssembly()
-  // var background = Lego.createPlate(52, 13, 1, 10, 5, -1)
-  // // var background = Lego.createPlate(10, 10, 1, 10, 5, -1)
-  background.classList.add('background')
-  // addBlock(background)
-  viewport.appendChild(background)
+
 
   var scene = Lego.createAssembly()
   viewport.appendChild(scene)
   // hard-coded to match the background image
-  scene.style.transform = 'rotateY(5.6rad) rotateX(0.1rad) scale3d(1, 1, 1)'
+  scene.style.transform = 'rotateY(5.6rad) rotateX(-0.1rad)'
   // scene.style.width = Lego.computePlateLength(52) + 'px'
   // scene.style.height = Lego.computePlateLength(13) + 'px'
   // scene.style.outline = '1px inset blue'
+  //
 
   var light = document.createElement('div')
   light.classList.add('light')
@@ -119,6 +115,29 @@ function init(viewport) {
   var blocks = []
     , faces = []
   Array.prototype.forEach.call(scene.querySelectorAll('.assembly.atomic'), addBlock)
+
+
+
+
+
+  var structure = Lego.createAssembly()
+  var leg1 = Lego.createPlate(2, 10, 6, 20, 12, -8)
+  var leg2 = Lego.createPlate(2, 10, 6, 32, 12, -8)
+  structure.appendChild(leg1)
+  structure.appendChild(leg2)
+  structure.classList.add('structure')
+  addBlock(structure)
+
+
+  var background = Lego.createAssembly()
+  var background = Lego.createPlate(52, 13, 1, 0, 0, -1)
+  // // var background = Lego.createPlate(10, 10, 1, 10, 5, -1)
+  background.classList.add('background')
+  // undo the scene transform
+  // background.style.transform = 'rotateX(-0.1rad) rotateY(-5.6rad)'
+
+  // addBlock(background)
+  scene.appendChild(background)
 
   setInterval(printTime, 100)
 
