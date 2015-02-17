@@ -1,25 +1,23 @@
 'use strict'
+var Vect3 = require('./vect3')
+  , Lego = require('./lego')
 
 var PI = Math.PI
-// magic numbers that are approximately the correct actual lego ratios
-var STUD_WIDTH = 50
-var STUD_SPACING = STUD_WIDTH / 1.5
-var PLATE_HEIGHT = STUD_SPACING
-var STUD_HEIGHT = PLATE_HEIGHT / 1.88
-var STUD_PADDING = STUD_WIDTH / 3.2
+var performance = window.performance ||
+  { now: function() { return +new Date(); } }
 
-
-window.onload = function init() {
-  var viewport = createAssembly()
+window.onload = function () {
+  var viewport = Lego.createAssembly()
   viewport.classList.add('viewport')
   viewport.style.transformStyle = 'preserve-3d'
   viewport.style.perspective = '5000px'
 
 
-  viewport.appendChild(createPlate(1, 1, 6, 4))
-  // viewport.appendChild(makeSymbol(0, 10,  4))
+  // viewport.appendChild(Lego.createPlate(1, 1, 0, 0))
+  // viewport.appendChild(Lego.createPlate(8, 1, 1, 0))
+  // viewport.appendChild(makeSymbol(0, 0,  0))
   // viewport.appendChild(makeSymbol(1, 7,  0))
-  // viewport.appendChild(makeSymbol(2, 14, 0))
+  viewport.appendChild(makeSymbol(2, 5, 0))
   // viewport.appendChild(makeSymbol(3, 21, 0))
   // viewport.appendChild(makeSymbol(4, 28, 0))
   // viewport.appendChild(makeSymbol(5, 0,  11))
@@ -30,109 +28,170 @@ window.onload = function init() {
   // viewport.appendChild(makeSymbol(':', 35, 0))
   document.body.appendChild(viewport)
 
-  var fid
-  function update() {
-    updateColors(viewport, null, 230, 100)
+  init(viewport)
+}
+
+
+function init(scene) {
+  // Default positions
+  var mouseX = -40, mouseY = 30
+  var lightX = 100, lightY = 0
+  var scale = 1
+
+  var light = document.createElement('div')
+  light.classList.add('light')
+  scene.parentNode.appendChild(light)
+  // var atomicBlocks = document.querySelectorAll('.assembly.atomic')
+  // var blockFaces = []
+  // Array.prototype.forEach.call(atomicBlocks, function (block) {
+    var faces = Array.prototype.map.call(scene.querySelectorAll('.face'), function (face) {
+      var verticies = computeVertexData(face)
+      return {
+        verticies: verticies,
+        normal: Vect3.normalize(Vect3.cross(Vect3.sub(verticies.b, verticies.a), Vect3.sub(verticies.c, verticies.a))),
+        center: Vect3.divs(Vect3.sub(verticies.c, verticies.a), 2),
+        faceEl: face
+      }
+    })
+  //   blockFaces.push({ blockEl: block, faces: faces })
+  // })
+
+  function render(startTime) {
+    // blockFaces.forEach(function (block) {
+      var face, direction, amount,
+        // faces = block.faces,
+        faceNum = 0, faceCount = faces.length,
+        blockTransform = getTransform(scene),
+        lightTransform = getTransform(light),
+        lightPosition = Vect3.rotate(lightTransform.translate, Vect3.muls(blockTransform.rotate, -1))
+
+      while (faceNum < faceCount && performance.now() - startTime <= 10) {
+        face = faces[faceNum]
+        direction = Vect3.normalize(Vect3.sub(lightPosition, face.center))
+        amount = 1 - Math.max(0, Vect3.dot(face.normal, direction)).toFixed(2)
+        if (face.light != amount) {
+          face.light = amount
+          face.faceEl.style.backgroundImage = 'linear-gradient(rgba(0,0,0,' + amount + '),rgba(0,0,0,' + amount + '))'
+        }
+        faceNum++
+      }
+    // })
   }
 
   function loop() {
-    update()
-    fid = window.requestAnimationFrame(loop, viewport)
+    var now = performance.now()
+    window.requestAnimationFrame(loop, scene)
+    var s = scale.toFixed(4)
+    scene.style.transform =
+      'rotateY(' + (mouseX / 100).toFixed(4) + 'rad) ' +
+      'rotateX(' + (-mouseY / 100).toFixed(4) + 'rad) ' +
+      'scale3d(' + s + ',' + s + ',' + s + ')'
+    light.style.transform = 'translateY(' + lightY.toFixed(4) + 'px) translateX(' + lightX.toFixed(4) + 'px) translateZ(250px)'
+    render(now)
   }
 
-  function stop() {
-    window.cancelAnimationFrame(fid)
-  }
+  loop()
 
-  update()
+  // allow user to drag the object around with the mouse
+  document.addEventListener('mousedown', function (e) {
+    if (e.button !== 0) {
+      return
+    }
+    var originX, originY,
+      dragHandler = function(e) {
+        if (originX || originY) {
+          mouseX += e.pageX - originX
+          mouseY += e.pageY - originY
+        }
+        originX = e.pageX
+        originY = e.pageY
+      }
+    document.addEventListener('mousemove', dragHandler)
+    document.addEventListener('mouseup', function dragEndHandler() {
+      document.removeEventListener('mousemove', dragHandler)
+      document.removeEventListener('mouseup', dragEndHandler)
+    })
+    e.preventDefault()
+  })
 
-  // loop()
-
-  window.updateColors = update
-  window.loop = loop
-  window.stopUpdating = stop
+  document.addEventListener('mousewheel', function (ev) {
+    scale += ev.deltaY/1000
+    scale = Math.min(Math.max(scale, 0.05), 1)
+    ev.preventDefault()
+  })
 }
 
 function makeSymbol(s, offX, offY, offZ) {
   offX = offX || 0
   offY = offY || 0
   offZ = offZ || 0
-  var assembly = createAssembly()
+  var assembly = Lego.createAssembly()
   assembly.classList.add('symbol')
   switch (s) {
     case ':':
-      assembly.appendChild(createPlate(1, 1, offX, offY + 1, offZ))
-      assembly.appendChild(createPlate(1, 1, offX, offY + 7, offZ))
+      assembly.appendChild(Lego.createPlate(1, 1, offX, offY + 1, offZ))
+      assembly.appendChild(Lego.createPlate(1, 1, offX, offY + 7, offZ))
       break
     case 0:
-      assembly.appendChild(createPlate(1, 9, offX, offY, offZ))
-      assembly.appendChild(createPlate(3, 1, offX + 1, offY, offZ))
-      assembly.appendChild(createPlate(1, 9, offX + 4, offY, offZ))
-      assembly.appendChild(createPlate(3, 1, offX + 1, offY + 8, offZ))
+      assembly.appendChild(Lego.createPlate(1, 9, offX, offY, offZ))
+      assembly.appendChild(Lego.createPlate(3, 1, offX + 1, offY, offZ))
+      assembly.appendChild(Lego.createPlate(1, 9, offX + 4, offY, offZ))
+      assembly.appendChild(Lego.createPlate(3, 1, offX + 1, offY + 8, offZ))
       break
     case 1:
-      assembly.appendChild(createPlate(1, 9, offX + 4, offY, offZ))
+      assembly.appendChild(Lego.createPlate(1, 9, offX + 4, offY, offZ))
       break
     case 2:
-      assembly.appendChild(createPlate(5, 1, offX, offY, offZ))
-      assembly.appendChild(createPlate(1, 3, offX + 4, offY + 1, offZ))
-      assembly.appendChild(createPlate(5, 1, offX, offY + 4, offZ))
-      assembly.appendChild(createPlate(1, 3, offX, offY + 5, offZ))
-      assembly.appendChild(createPlate(5, 1, offX, offY + 8, offZ))
+      assembly.appendChild(Lego.createPlate(5, 1, offX, offY, offZ))
+      assembly.appendChild(Lego.createPlate(1, 3, offX + 4, offY + 1, offZ))
+      assembly.appendChild(Lego.createPlate(5, 1, offX, offY + 4, offZ))
+      assembly.appendChild(Lego.createPlate(1, 3, offX, offY + 5, offZ))
+      assembly.appendChild(Lego.createPlate(5, 1, offX, offY + 8, offZ))
       break
     case 3:
-      assembly.appendChild(createPlate(5, 1, offX, offY, offZ))
-      assembly.appendChild(createPlate(1, 3, offX + 4, offY + 1, offZ))
-      assembly.appendChild(createPlate(5, 1, offX, offY + 4, offZ))
-      assembly.appendChild(createPlate(1, 3, offX + 4, offY + 5, offZ))
-      assembly.appendChild(createPlate(5, 1, offX, offY + 8, offZ))
+      assembly.appendChild(Lego.createPlate(5, 1, offX, offY, offZ))
+      assembly.appendChild(Lego.createPlate(1, 3, offX + 4, offY + 1, offZ))
+      assembly.appendChild(Lego.createPlate(5, 1, offX, offY + 4, offZ))
+      assembly.appendChild(Lego.createPlate(1, 3, offX + 4, offY + 5, offZ))
+      assembly.appendChild(Lego.createPlate(5, 1, offX, offY + 8, offZ))
       break
     case 4:
-      assembly.appendChild(createPlate(1, 5, offX, offY, offZ))
-      assembly.appendChild(createPlate(3, 1, offX + 1, offY + 4, offZ))
-      assembly.appendChild(createPlate(1, 9, offX + 4, offY, offZ))
+      assembly.appendChild(Lego.createPlate(1, 5, offX, offY, offZ))
+      assembly.appendChild(Lego.createPlate(3, 1, offX + 1, offY + 4, offZ))
+      assembly.appendChild(Lego.createPlate(1, 9, offX + 4, offY, offZ))
       break
     case 5:
-      assembly.appendChild(createPlate(5, 1, offX, offY, offZ))
-      assembly.appendChild(createPlate(1, 3, offX, offY + 1, offZ))
-      assembly.appendChild(createPlate(5, 1, offX, offY + 4, offZ))
-      assembly.appendChild(createPlate(1, 3, offX + 4, offY + 5, offZ))
-      assembly.appendChild(createPlate(5, 1, offX, offY + 8, offZ))
+      assembly.appendChild(Lego.createPlate(5, 1, offX, offY, offZ))
+      assembly.appendChild(Lego.createPlate(1, 3, offX, offY + 1, offZ))
+      assembly.appendChild(Lego.createPlate(5, 1, offX, offY + 4, offZ))
+      assembly.appendChild(Lego.createPlate(1, 3, offX + 4, offY + 5, offZ))
+      assembly.appendChild(Lego.createPlate(5, 1, offX, offY + 8, offZ))
       break
     case 6:
-      assembly.appendChild(createPlate(1, 9, offX, offY, offZ))
-      assembly.appendChild(createPlate(3, 1, offX + 1, offY + 4, offZ))
-      assembly.appendChild(createPlate(1, 5, offX + 4, offY + 4, offZ))
-      assembly.appendChild(createPlate(3, 1, offX + 1, offY + 8, offZ))
+      assembly.appendChild(Lego.createPlate(1, 9, offX, offY, offZ))
+      assembly.appendChild(Lego.createPlate(3, 1, offX + 1, offY + 4, offZ))
+      assembly.appendChild(Lego.createPlate(1, 5, offX + 4, offY + 4, offZ))
+      assembly.appendChild(Lego.createPlate(3, 1, offX + 1, offY + 8, offZ))
       break
     case 7:
-      assembly.appendChild(createPlate(4, 1, offX, offY, offZ))
-      assembly.appendChild(createPlate(1, 9, offX + 4, offY, offZ))
+      assembly.appendChild(Lego.createPlate(4, 1, offX, offY, offZ))
+      assembly.appendChild(Lego.createPlate(1, 9, offX + 4, offY, offZ))
       break
     case 8:
-      assembly.appendChild(createPlate(1, 9, offX, offY, offZ))
-      assembly.appendChild(createPlate(3, 1, offX + 1, offY, offZ))
-      assembly.appendChild(createPlate(3, 1, offX + 1, offY + 4, offZ))
-      assembly.appendChild(createPlate(3, 1, offX + 1, offY + 8, offZ))
-      assembly.appendChild(createPlate(1, 9, offX + 4, offY, offZ))
+      assembly.appendChild(Lego.createPlate(1, 9, offX, offY, offZ))
+      assembly.appendChild(Lego.createPlate(3, 1, offX + 1, offY, offZ))
+      assembly.appendChild(Lego.createPlate(3, 1, offX + 1, offY + 4, offZ))
+      assembly.appendChild(Lego.createPlate(3, 1, offX + 1, offY + 8, offZ))
+      assembly.appendChild(Lego.createPlate(1, 9, offX + 4, offY, offZ))
       break
     case 9:
-      assembly.appendChild(createPlate(1, 9, offX + 4, offY, offZ))
-      assembly.appendChild(createPlate(3, 1, offX + 1, offY, offZ))
-      assembly.appendChild(createPlate(3, 1, offX + 1, offY + 4, offZ))
-      assembly.appendChild(createPlate(1, 5, offX, offY, offZ))
+      assembly.appendChild(Lego.createPlate(1, 9, offX + 4, offY, offZ))
+      assembly.appendChild(Lego.createPlate(3, 1, offX + 1, offY, offZ))
+      assembly.appendChild(Lego.createPlate(3, 1, offX + 1, offY + 4, offZ))
+      assembly.appendChild(Lego.createPlate(1, 5, offX, offY, offZ))
       break
   }
   return assembly
-}
-
-function matrixString(m) {
-  return 'matrix3d(' + [
-    m.m11, m.m12, m.m13, m.m14,
-    m.m21, m.m22, m.m23, m.m24,
-    m.m31, m.m32, m.m33, m.m34,
-    m.m41, m.m42, m.m43, m.m44
-  ].join(', ') + ')'
 }
 
 function identityMatrix() {
@@ -142,36 +201,6 @@ function identityMatrix() {
   m.m31 = 0; m.m32 = 0; m.m33 = 1; m.m34 = 0
   m.m41 = 0; m.m42 = 0; m.m43 = 0; m.m44 = 1
   return m
-}
-
-function multiplyMatrix(m1, m2) {
-
-  var m11 = m2.m11 * m1.m11 + m2.m12 * m1.m21 + m2.m13 * m1.m31 + m2.m14 * m1.m41
-    , m12 = m2.m11 * m1.m12 + m2.m12 * m1.m22 + m2.m13 * m1.m32 + m2.m14 * m1.m42
-    , m13 = m2.m11 * m1.m13 + m2.m12 * m1.m23 + m2.m13 * m1.m33 + m2.m14 * m1.m43
-    , m14 = m2.m11 * m1.m14 + m2.m12 * m1.m24 + m2.m13 * m1.m34 + m2.m14 * m1.m44
-
-    , m21 = m2.m21 * m1.m11 + m2.m22 * m1.m21 + m2.m23 * m1.m31 + m2.m24 * m1.m41
-    , m22 = m2.m21 * m1.m12 + m2.m22 * m1.m22 + m2.m23 * m1.m32 + m2.m24 * m1.m42
-    , m23 = m2.m21 * m1.m13 + m2.m22 * m1.m23 + m2.m23 * m1.m33 + m2.m24 * m1.m43
-    , m24 = m2.m21 * m1.m14 + m2.m22 * m1.m24 + m2.m23 * m1.m34 + m2.m24 * m1.m44
-
-    , m31 = m2.m31 * m1.m11 + m2.m32 * m1.m21 + m2.m33 * m1.m31 + m2.m34 * m1.m41
-    , m32 = m2.m31 * m1.m12 + m2.m32 * m1.m22 + m2.m33 * m1.m32 + m2.m34 * m1.m42
-    , m33 = m2.m31 * m1.m13 + m2.m32 * m1.m23 + m2.m33 * m1.m33 + m2.m34 * m1.m43
-    , m34 = m2.m31 * m1.m14 + m2.m32 * m1.m24 + m2.m33 * m1.m34 + m2.m34 * m1.m44
-
-    , m41 = m2.m41 * m1.m11 + m2.m42 * m1.m21 + m2.m43 * m1.m31 + m2.m44 * m1.m41
-    , m42 = m2.m41 * m1.m12 + m2.m42 * m1.m22 + m2.m43 * m1.m32 + m2.m44 * m1.m42
-    , m43 = m2.m41 * m1.m13 + m2.m42 * m1.m23 + m2.m43 * m1.m33 + m2.m44 * m1.m43
-    , m44 = m2.m41 * m1.m14 + m2.m42 * m1.m24 + m2.m43 * m1.m34 + m2.m44 * m1.m44
-
-  return {
-    m11: m11, m12: m12, m13: m13, m14: m14,
-    m21: m21, m22: m22, m23: m23, m24: m24,
-    m31: m31, m32: m32, m33: m33, m34: m34,
-    m41: m41, m42: m42, m43: m43, m44: m44
-  }
 }
 
 function parseCSSMatrix(matrixString) {
@@ -197,13 +226,20 @@ function parseCSSMatrix(matrixString) {
   return identityMatrix()
 }
 
-function getTransform(matrix) {
-  var rotateY = Math.asin(-matrix.m13),
-    rotateX,
-    rotateZ
+function getTransformMatrix(el) {
+  var computedStyle = window.getComputedStyle(el, null),
+    val = computedStyle.transform ||
+        computedStyle.webkitTransform ||
+        computedStyle.MozTransform ||
+        computedStyle.msTransform
+  return parseCSSMatrix(val)
+}
 
-  rotateX = Math.atan2(matrix.m23, matrix.m33)
-  rotateZ = Math.atan2(matrix.m12, matrix.m11)
+function getTransform(el) {
+  var matrix = getTransformMatrix(el)
+    , rotateY = Math.asin(-matrix.m13)
+    , rotateX = Math.atan2(matrix.m23, matrix.m33)
+    , rotateZ = Math.atan2(matrix.m12, matrix.m11)
 
   /*if (Math.cos(rotateY) !== 0) {
       rotateX = Math.atan2(matrix.m23, matrix.m33)
@@ -228,28 +264,30 @@ function getTransform(matrix) {
   }
 }
 
-function computeVertexData(elem, m) {
-    var w = elem.offsetWidth / 2,
-      h = elem.offsetHeight / 2,
-      v = {
-        a: { x: -w, y: -h, z: 0 },
-        b: { x: w, y: -h, z: 0 },
-        c: { x: w, y: h, z: 0 },
-        d: { x: -w, y: h, z: 0 }
-      },
-      transform = getTransform(m)
+function computeVertexData(el, m) {
+  var w = 100,
+    h = 100,
+    v = {
+      a: { x: -w, y: -h, z: 0 },
+      b: { x: w, y: -h, z: 0 },
+      c: { x: w, y: h, z: 0 },
+      d: { x: -w, y: h, z: 0 }
+    },
+    transform
 
+  while (el.nodeType === 1) {
+    transform = getTransform(el)
     v.a = Vect3.add(Vect3.rotate(v.a, transform.rotate), transform.translate)
     v.b = Vect3.add(Vect3.rotate(v.b, transform.rotate), transform.translate)
     v.c = Vect3.add(Vect3.rotate(v.c, transform.rotate), transform.translate)
     v.d = Vect3.add(Vect3.rotate(v.d, transform.rotate), transform.translate)
-
-    return v
+    el = el.parentNode
+  }
+  return v
 }
 
 function updateColors(node, m, h, s) {
   var style, matrix
-  m = m || []
   style = window.getComputedStyle(node)
   m.push(parseCSSMatrix(style.transform))
   matrix = m.reverse().reduce(multiplyMatrix)
@@ -282,137 +320,4 @@ function updateColors(node, m, h, s) {
       updateColors(n, m.concat(), h, s)
     })
   }
-}
-
-
-// assemblies are for grouping faces and other assemblies
-function createAssembly() {
-  var assembly = document.createElement('div')
-  assembly.classList.add('assembly')
-  return assembly
-}
-
-function computePlateLength(studs) {
-  return STUD_PADDING * 2 + studs * (STUD_WIDTH + STUD_SPACING) - STUD_SPACING
-}
-
-// rows/cols in studs
-function createPlate(rows, cols, posX, posY, posZ, color) {
-
-  var container = createAssembly()
-  container.classList.add('plate', 'atomic')
-
-  var plateWidth = computePlateLength(rows)
-  var plateLength = computePlateLength(cols)
-  var plateX = computePlateLength(posX || 0)
-  var plateY = computePlateLength(posY || 0)
-  var plateZ = (posZ || 0) * PLATE_HEIGHT
-
-  var bottom = createFace(plateWidth, plateLength, plateX, plateY, plateZ, 0, PI, 0)
-  bottom.style.transform += ' translateX(' + (-plateWidth).toFixed(2) + 'px)'
-
-  var top = createFace(plateWidth, plateLength, plateX, plateY, plateZ)
-  top.classList.add('top')
-  top.style.transform += ' translateZ(' + PLATE_HEIGHT.toFixed(2) + 'px)'
-
-  var back = createFace(plateWidth, PLATE_HEIGHT, plateX, plateY, plateZ, PI / 2)
-  back.classList.add('back')
-
-  var front = createFace(plateWidth, PLATE_HEIGHT, plateX, plateY, plateZ, -PI / 2)
-  front.classList.add('front')
-  front.style.transform += ' translateZ(' + plateLength.toFixed(2) + 'px)'
-  front.style.transform += ' translateY(' + (-PLATE_HEIGHT).toFixed(2) + 'px)'
-
-  var left = createFace(PLATE_HEIGHT, plateLength, plateX, plateY, plateZ, 0, -PI / 2)
-  left.classList.add('left')
-
-  var right = createFace(PLATE_HEIGHT, plateLength, plateX, plateY, plateZ, 0, PI / 2)
-  right.classList.add('right')
-  right.style.transform += ' translateZ(' + plateWidth.toFixed(2) + 'px)'
-  right.style.transform += ' translateX(' + (-PLATE_HEIGHT).toFixed(2) + 'px)'
-
-  var studR = STUD_WIDTH / 2
-    , studH = STUD_HEIGHT
-    , studZ = 0
-    , studRX = PI / 2
-    , studX
-    , studY
-    , stud
-    , r
-    , c
-  for (r = 0; r < rows; ++r) {
-    for (c = 0; c < cols; ++c) {
-      studX = STUD_PADDING + r * (STUD_WIDTH + STUD_SPACING)
-      studY = STUD_PADDING + c * (STUD_WIDTH + STUD_SPACING)
-      stud = createStud(studR, studH, studX, studY, studZ, studRX)
-      top.appendChild(stud)
-    }
-  }
-
-  container.appendChild(bottom)
-  container.appendChild(front)
-  container.appendChild(back)
-  container.appendChild(left)
-  container.appendChild(right)
-  container.appendChild(top)
-  return container
-}
-
-
-function createFace(w, h, x, y, z, rx, ry, rz, rad) {
-  w = w || 0
-  h = h || 0
-  x = x || 0
-  y = y || 0
-  z = z || 0
-  rx = rx || 0
-  ry = ry || 0
-  rz = rz || 0
-  rad = rad || 0
-
-  var face = document.createElement('div')
-  face.classList.add('face')
-  face.style.cssText =
-    'position: absolute;' +
-    'top: 0; left: 0;' +
-    'width:' + w.toFixed(2) + 'px;' +
-    'height:' + h.toFixed(2) + 'px;' +
-    'transform: translate3d(' + x.toFixed(2) + 'px,' + y.toFixed(2) + 'px,' + z.toFixed(2) + 'px) ' +
-      'rotateX(' + rx.toFixed(2) + 'rad) rotateY(' + ry.toFixed(2) + 'rad) rotateZ(' + rz.toFixed(2) + 'rad);' +
-
-    (rad ? 'border-radius: ' + rad.toFixed(2) + 'px' : '')
-  return face
-}
-
-function createTube(r, height, sides) {
-  var tube = createAssembly()
-  var sideAngle = 2 * PI / sides
-  var sideLen = r * 2 * Math.tan(PI / sides)
-  for (var c = 0; c < sides; c++) {
-    var x = Math.sin(sideAngle * c) * r
-    var z = Math.cos(sideAngle * c) * r
-    var ry = Math.atan2(x, z) + Math.tan(PI / sides) // compensate for shifting the origin? I have no idea why this works
-    var face = createFace(sideLen, height, r + x, 0, z - r, 0, ry)
-    tube.appendChild(face)
-  }
-  return tube
-}
-
-function createStud(r, h, x, y, z, rx, ry, rz) {
-  x = x || 0
-  y = y || 0
-  z = z || 0
-  rx = rx || 0
-  ry = ry || 0
-  rz = rz || 0
-  var stud = createTube(r, h, 15)
-  var cap = createFace(r * 2, r * 2, 0, 0, 0, -Math.PI / 2, 0, 0, r)
-  cap.classList.add('cap')
-  cap.style.transform += ' translateZ(' + h.toFixed(2) + 'px)'
-  stud.appendChild(cap)
-  stud.style.transform =
-    'translate3d(' + x.toFixed(2) + 'px,' + y.toFixed(2) + 'px,' + z.toFixed(2) + 'px) ' +
-    'rotateX(' + rx.toFixed(2) + 'rad) rotateY(' + ry.toFixed(2) + 'rad) rotateZ(' + rz.toFixed(2) + 'rad)'
-
-  return stud
 }
